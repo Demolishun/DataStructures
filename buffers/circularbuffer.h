@@ -13,9 +13,17 @@ public:
     class CircularIter
     {
     public:
-        CircularIter(CircularBuffer& circbuff, DataContIter iter)
+        using self_type = CircularIter;
+        using value_type = T;
+        using reference = T&;
+        using pointer = T*;
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type = ptrdiff_t;
+
+        CircularIter(CircularBuffer& circbuff, DataContIter iter, bool isbegin)
             : m_circbuff(circbuff)
             , m_iter(iter)
+            , m_isBegin(isbegin)
         {
         }
 
@@ -29,9 +37,42 @@ public:
             return *m_iter;
         }
 
+        // comparison operators
+        friend bool operator==(const CircularIter& lhs, const CircularIter& rhs){
+            return lhs.m_iter == rhs.m_iter;
+        }
+        friend bool operator!=(const CircularIter& lhs, const CircularIter& rhs){
+            return lhs.m_iter != rhs.m_iter;
+        }
+        /*
+        // add operator
+        friend CircularIter operator+(int inc){
+
+        }
+        */
+        // cannot do other comparisons, not known if iter is m_begin or m_end
+        /*
+        friend bool operator<(const CircularIter& lhs, const CircularIter& rhs){
+
+            return lhs.m_iter < rhs.m_iter;
+        }
+        friend bool operator>(const CircularIter& lhs, const CircularIter& rhs){
+            return lhs.m_iter > rhs.m_iter;
+        }
+        friend bool operator<=(const CircularIter& lhs, const CircularIter& rhs){
+            return lhs.m_iter <= rhs.m_iter;
+        }
+        friend bool operator>=(const CircularIter& lhs, const CircularIter& rhs){
+            return lhs.m_iter >= rhs.m_iter;
+        }
+        */
+
     private:
         CircularBuffer& m_circbuff;
         DataContIter m_iter;
+        bool m_isBegin;
+
+        friend CircularBuffer;
     };
     //friend CircularIter; // not needed?
 
@@ -44,7 +85,7 @@ public:
 
     // resize clears contents
     void resize(size_t length){
-        m_buffer.resize(length, 0.0);
+        m_buffer.resize(length, T());
         //m_buffer.clear(); // clears values
         m_begin = m_buffer.begin();
         m_end = m_buffer.begin();
@@ -52,7 +93,7 @@ public:
     int size(){
         return (m_begin <= m_end) ? (m_end - m_begin) : (m_begin - m_buffer.begin()) + (--m_buffer.end() - m_end);
     }
-    size_t innerSize(){
+    int innerSize(){
         return m_buffer.size();
     }
     int beginPos(){
@@ -65,11 +106,11 @@ public:
     // begin and end of buffer
     //const DataContIter begin(){
     CircularIter begin(){
-        return CircularIter(*this, m_begin);
+        return CircularIter(*this, m_begin, true);
     }
     //const DataContIter end(){
     CircularIter end(){
-        return CircularIter(*this, m_end);
+        return CircularIter(*this, m_end, false);
     }
 
     // insert and remove
@@ -91,6 +132,29 @@ public:
 
         if(m_end == m_begin){
             inc(m_begin);
+        }
+    }
+    // bulk remove from front m_begin to pos
+    void remove(const CircularIter& pos){
+        // nothing to remove
+        if(m_begin == m_end || m_begin == pos.m_iter){
+            return;
+        }
+        // empty whole buffer
+        if(pos.m_iter == m_end){
+            m_begin = m_end;
+            return;
+        }
+        if(m_begin < m_end){
+            if(pos.m_iter > m_begin && pos.m_iter < m_end){
+                m_begin = pos.m_iter;
+            }
+        }else if(m_begin > m_end){
+            if(pos.m_iter < m_end && pos.m_iter < m_begin){
+                m_begin = pos.m_iter;
+            }else if(pos.m_iter > m_end && pos.m_iter > m_begin){
+                m_begin = pos.m_iter;
+            }
         }
     }
 
